@@ -1,6 +1,7 @@
 package br.com.quarkus_finance.dao.moviment;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import javax.enterprise.context.RequestScoped;
@@ -71,9 +72,27 @@ public class MovimentDAO extends GenericDAO {
 	
 	public List<MovimentDTO> listAll() {
 		List<Moviment> listMoviment = listAll(Moviment.class);
-		List<MovimentDTO> listMovimentDTO = new ArrayList<MovimentDTO>();
+		List<MovimentDTO> listMovimentDTO = Collections.synchronizedList(new ArrayList<MovimentDTO>());
+		List<Thread> listThreadMoviment = new ArrayList<Thread>();
 		for (Moviment moviment : listMoviment) {
-			listMovimentDTO.add(convertFromEntity(moviment));
+			Thread threadMoviment = new Thread(new MovimentListAllRunnable(convertFromEntity(moviment), listMovimentDTO));
+			threadMoviment.start();
+			listThreadMoviment.add(threadMoviment);
+			
+//			without the threads:
+//			try {
+//				Thread.sleep(500);
+//			} catch (InterruptedException e) {
+//				e.printStackTrace();
+//			}
+//			listMovimentDTO.add(convertFromEntity(moviment));
+		}
+		for (Thread threadMoviment : listThreadMoviment) {
+			try {
+				threadMoviment.join();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 		
 		return listMovimentDTO;
